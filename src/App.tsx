@@ -201,7 +201,7 @@ export default function App() {
         suggestedName: name,
         types: [
           {
-            description: blob.type.startsWith("image/") ? "Image file" : "Mindkosh file",
+            description: blob.type.startsWith("image/") ? "Image file" : "MindKosh Pixora file",
             accept: { [blob.type || "application/octet-stream"]: [extension] },
           },
         ],
@@ -448,7 +448,7 @@ export default function App() {
               <Wand2 className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold leading-tight tracking-tight">Mindkosh</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-tight">MindKosh Pixora</h1>
               <p className="text-xs text-slate-500">Convert • Resize • Enhance any image</p>
             </div>
           </div>
@@ -1063,7 +1063,7 @@ export default function App() {
       )}
 
       <footer className="pb-8 pt-2 text-center text-xs text-slate-400">
-        Mindkosh • Everything runs locally in your browser
+        MindKosh Pixora • Everything runs locally in your browser
       </footer>
     </div>
   );
