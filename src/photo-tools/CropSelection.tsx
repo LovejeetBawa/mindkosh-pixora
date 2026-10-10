@@ -15,6 +15,15 @@ export default function CropSelection(props: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{ pointer: number; rect: Rect; x: number; y: number; scale: number; corner?: Corner } | null>(null);
   const [active, setActive] = useState(false);
+  const [displayWidth, setDisplayWidth] = useState(300);
+  useEffect(() => {
+    const observer = new ResizeObserver(entries => setDisplayWidth(entries[0].contentRect.width));
+    observer.observe(stage.current!);
+    return () => observer.disconnect();
+  }, []);
+  // Separate the touch handles when selecting a small face in a group photo.
+  const handleX = 22 + Math.max(0, (44 - rect.width / sourceW * displayWidth) / 2);
+  const handleY = 22 + Math.max(0, (44 - rect.height / sourceW * displayWidth) / 2);
   useEffect(() => {
     const target = canvas.current!;
     const scale = Math.min(1, 1000 / Math.max(sourceW, sourceH));
@@ -56,7 +65,7 @@ export default function CropSelection(props: Props) {
         {(['nw', 'ne', 'sw', 'se'] as const).map(corner => <button key={corner} type="button" aria-label={`Resize crop ${ {nw:'top left',ne:'top right',sw:'bottom left',se:'bottom right'}[corner]}`} onPointerDown={event => begin(event, corner)} onKeyDown={event => {
           const directions: Record<string, [number, number]> = { ArrowLeft: [-5,0], ArrowRight: [5,0], ArrowUp: [0,-5], ArrowDown: [0,5] };
           if (directions[event.key]) { event.preventDefault(); event.stopPropagation(); const [dx,dy] = directions[event.key]; onChange(settings(resizeSelection(rect, corner, dx, dy, sourceW, sourceH), sourceW, sourceH)); }
-        }} className={`absolute z-10 flex h-11 w-11 items-center justify-center ${corner === 'nw' || corner === 'se' ? 'cursor-nwse-resize' : 'cursor-nesw-resize'}`} style={{ left: corner.endsWith('w') ? '-22px' : undefined, right: corner.endsWith('e') ? '-22px' : undefined, top: corner.startsWith('n') ? '-22px' : undefined, bottom: corner.startsWith('s') ? '-22px' : undefined, touchAction: 'none' }}><span className="h-4 w-4 border-2 border-white bg-indigo-600 shadow"/></button>)}
+        }} className={`absolute z-10 flex h-11 w-11 items-center justify-center ${corner === 'nw' || corner === 'se' ? 'cursor-nwse-resize' : 'cursor-nesw-resize'}`} style={{ left: corner.endsWith('w') ? `${-handleX}px` : undefined, right: corner.endsWith('e') ? `${-handleX}px` : undefined, top: corner.startsWith('n') ? `${-handleY}px` : undefined, bottom: corner.startsWith('s') ? `${-handleY}px` : undefined, touchAction: 'none' }}><span className="h-4 w-4 border-2 border-white bg-indigo-600 shadow"/></button>)}
       </div>
     </div>
   </div>;
