@@ -101,7 +101,12 @@ export default function DocumentTranslator() {
               AbortSignal.timeout(25000),
             ]),
           });
-          const data = await response.json();
+          const data = await response
+            .json()
+            .catch(() => ({
+              error:
+                "Free translation service is temporarily unavailable. Retry later.",
+            }));
           if (!response.ok || typeof data.text !== "string")
             throw Error(
               data.error || "Free translation unavailable. Retry later.",

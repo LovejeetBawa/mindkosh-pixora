@@ -60,8 +60,10 @@ export async function onRequestPost({ request }: { request: Request }) {
     const upstream = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (!upstream.ok)
       return json(
-        { error: "Free translation service is temporarily unavailable." },
-        502,
+        {
+          error: `Free translation provider is unavailable (HTTP ${upstream.status}). Retry later.`,
+        },
+        200,
       );
     const data = (await upstream.json()) as {
       responseStatus?: number;
@@ -78,14 +80,11 @@ export async function onRequestPost({ request }: { request: Request }) {
         429,
       );
     if (typeof data.responseData?.translatedText !== "string")
-      return json({ error: "No translation returned." }, 502);
+      return json({ error: "No translation returned." });
     return json({ text: data.responseData.translatedText });
   } catch {
-    return json(
-      {
-        error: "Translation could not finish. Check the connection and retry.",
-      },
-      502,
-    );
+    return json({
+      error: "Translation could not finish. Check the connection and retry.",
+    });
   }
 }
