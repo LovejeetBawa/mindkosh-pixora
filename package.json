@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prebuild": "node scripts/prepare-background-assets.mjs",
+    "predev": "node scripts/prepare-background-assets.mjs"
   },
   "dependencies": {
+    "@imgly/background-removal": "1.4.5",
     "clsx": "2.1.1",
     "gifenc": "^1.0.3",
     "jszip": "^3.10.2",
@@ -19,6 +22,7 @@
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@imgly/background-removal-data": "1.4.5",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
