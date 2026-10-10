@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import CropSelection from './CropSelection';
+import BackgroundRefine from './BackgroundRefine';
+import { selection } from './selection';
+import { applyCropMask } from './background';
 import { Download, Plus, Trash2, Camera, ShieldCheck } from 'lucide-react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import JSZip from 'jszip';
 import { arrange, pixels, points } from './layout';
 
-type Photo = { id: string; name: string; image: HTMLImageElement; url: string; width: number; height: number; copies: number; zoom: number; x: number; y: number; rotation: number; preset: number; cutout?: HTMLImageElement; backgroundMode: 'original' | 'removed'; background: string };
+type Photo = { id: string; name: string; image: HTMLImageElement; url: string; width: number; height: number; copies: number; zoom: number; x: number; y: number; rotation: number; preset: number; cutout?: HTMLImageElement; cutoutKey?: string; backgroundMode: 'original' | 'removed'; background: string };
 const presets = [
   { name: '2 × 2 inch — 50.8 × 50.8 mm', width: 50.8, height: 50.8 },
   { name: '35 × 45 mm', width: 35, height: 45 },
@@ -66,6 +69,7 @@ export default function PassportPhoto() {
   const [format, setFormat] = useState<'png' | 'jpg'>('png');
   const [backgroundBusy, setBackgroundBusy] = useState('');
   const [backgroundProgress, setBackgroundProgress] = useState('');
+  const [refining, setRefining] = useState<{ photo: Photo; original: HTMLCanvasElement; result: HTMLCanvasElement } | null>(null);
   const mounted = useRef(true);
   const urls = useRef(new Set<string>());
   const preview = useRef<HTMLCanvasElement>(null);
@@ -81,26 +85,45 @@ export default function PassportPhoto() {
     const { canvas } = crop(photo, true); const target = preview.current;
     target.width = canvas.width; target.height = canvas.height; target.getContext('2d')!.drawImage(canvas, 0, 0);
   }, [photo, valid]);
-  const patch = (update: Partial<Photo>) => setPhotos(list => list.map(p => p.id === selected ? { ...p, ...update } : p));
-  async function changeBackground(colour: string) {
+  const patch = (update: Partial<Photo>) => {
+    if (photo?.backgroundMode === 'removed' && cropKey(photo) !== cropKey({ ...photo, ...update })) setNotice('Crop changed. Run background removal again for this selection.');
+    setPhotos(list => list.map(p => {
+    if (p.id !== selected) return p;
+    const next = { ...p, ...update };
+    if (p.backgroundMode === 'removed' && cropKey(p) !== cropKey(next)) next.backgroundMode = 'original';
+    return next;
+  }));
+  };
+  async function saveMask(target: Photo, mask: CanvasImageSource, colour: string) {
+    const rotated = target.rotation % 180 !== 0;
+    const width = rotated ? target.image.naturalHeight : target.image.naturalWidth;
+    const height = rotated ? target.image.naturalWidth : target.image.naturalHeight;
+    const area = selection(width, height, target.width / target.height, target.zoom, target.x, target.y);
+    const result = await canvasBlob(applyCropMask(target.image, mask, area, target.rotation));
+    if (!mounted.current) return;
+    const url = URL.createObjectURL(result); urls.current.add(url);
+    const cutout = new Image(); cutout.src = url; await cutout.decode();
+    setPhotos(list => list.map(p => p.id === target.id ? { ...p, cutout, cutoutKey: cropKey(target), backgroundMode: cropKey(p) === cropKey(target) ? 'removed' : 'original', background: colour } : p));
+    if (target.cutout) { URL.revokeObjectURL(target.cutout.src); urls.current.delete(target.cutout.src); }
+  }
+  async function changeBackground(colour: string, force = false) {
     if (!photo || backgroundBusy) return;
     if (colour === 'original') { patch({ backgroundMode: 'original' }); return; }
-    if (photo.cutout) { patch({ backgroundMode: 'removed', background: colour }); return; }
+    if (photo.cutout && photo.cutoutKey === cropKey(photo) && !force) { patch({ backgroundMode: 'removed', background: colour }); return; }
     const target = photo;
     setBackgroundBusy(target.id); setBackgroundProgress('Loading background remover…'); setError('');
     try {
       const { removeBackground } = await import('@imgly/background-removal');
-      const result = await removeBackground(target.url, {
+      const focused = crop({ ...target, backgroundMode: 'original' }, false, 'original').canvas;
+      const result = await removeBackground(await canvasBlob(focused), {
         publicPath: new URL('/background-assets/', window.location.origin).href,
         model: 'medium', proxyToWorker: false, output: { format: 'image/png', quality: 1 },
         progress: (key, current, total) => { if (mounted.current) setBackgroundProgress(key.startsWith('compute:') ? 'Separating person from background…' : `Loading photo tools: ${total ? Math.round(current / total * 100) : 0}%`); },
       });
       if (!mounted.current) return;
-      const url = URL.createObjectURL(result); urls.current.add(url);
-      const cutout = new Image(); cutout.src = url; await cutout.decode();
-      if (cutout.naturalWidth !== target.image.naturalWidth || cutout.naturalHeight !== target.image.naturalHeight) throw new Error('Background processing changed the image dimensions. Original photo retained.');
-      setPhotos(list => list.map(p => p.id === target.id ? { ...p, cutout, backgroundMode: 'removed', background: colour } : p));
-      setNotice('Background updated. Check hair and edges in the preview; Restore original is always available.');
+      const mask = await createImageBitmap(result);
+      try { await saveMask(target, mask, colour); } finally { mask.close(); }
+      setNotice('Background updated for the selected crop. Use Refine background to erase leftover people or repair edges.');
     } catch { if (mounted.current) setError('Could not remove the background. Your original photo is unchanged. Please retry; first use needs an internet connection and may take longer on mobile.'); }
     finally { if (mounted.current) { setBackgroundBusy(''); setBackgroundProgress(''); } }
   }
@@ -194,7 +217,7 @@ export default function PassportPhoto() {
             <label className="block text-sm font-medium">Copies on sheet<input className={field} type="number" min={1} max={40} value={photo.copies} onChange={e => patch({ copies: Number(e.target.value) })}/></label>
             {([{ key: 'zoom', label: 'Zoom', min: 1, max: 12, step: 0.01 }, { key: 'x', label: 'Horizontal position', min: 0, max: 100, step: 1 }, { key: 'y', label: 'Vertical position', min: 0, max: 100, step: 1 }] as const).map(control => <label key={control.key} className="block text-sm font-medium">{control.label}<input aria-label={control.label} type="range" className="mt-2 block w-full accent-indigo-600" min={control.min} max={control.max} step={control.step} value={photo[control.key]} onChange={e => patch({ [control.key]: Number(e.target.value) })}/></label>)}
             <div className="flex flex-wrap gap-2"><button aria-label="Zoom in" className="rounded-lg border px-3 py-2 text-sm" disabled={photo.zoom >= 12} onClick={() => patch({ zoom: Math.min(12, photo.zoom + 0.25) })}>Zoom +</button><button aria-label="Zoom out" className="rounded-lg border px-3 py-2 text-sm" disabled={photo.zoom <= 1} onClick={() => patch({ zoom: Math.max(1, photo.zoom - 0.25) })}>Zoom −</button><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ rotation: (photo.rotation + 90) % 360 })}>Rotate 90°</button><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ zoom: 1, x: 50, y: 50, rotation: 0 })}>Reset crop</button></div>
-            <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3"><h3 className="text-sm font-bold">Background</h3><label className="block text-sm">Background colour<select aria-label="Background colour" className={field} disabled={!!backgroundBusy} value={photo.backgroundMode === 'original' ? 'original' : ['transparent','#ffffff','#add8e6','#eeeeee'].includes(photo.background) ? photo.background : 'custom'} onChange={e => void changeBackground(e.target.value === 'custom' ? '#f0f0f0' : e.target.value)}><option value="original">Original background</option><option value="transparent">Transparent / remove</option><option value="#ffffff">White</option><option value="#add8e6">Light blue</option><option value="#eeeeee">Light grey</option><option value="custom">Custom colour</option></select></label>{photo.backgroundMode === 'removed' && <label className="flex items-center justify-between text-sm">Custom background colour<input aria-label="Custom background colour" type="color" disabled={!!backgroundBusy} value={photo.background === 'transparent' ? '#ffffff' : photo.background} onChange={e => patch({ background: e.target.value })}/></label>}<div className="flex flex-wrap gap-2"><button className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!!backgroundBusy || busy || loading} onClick={() => void changeBackground('transparent')}>{backgroundBusy === photo.id ? 'Removing…' : 'Remove background'}</button><button className="rounded-lg border bg-white px-3 py-2 text-sm disabled:opacity-50" disabled={!!backgroundBusy || photo.backgroundMode === 'original'} onClick={() => patch({ backgroundMode: 'original' })}>Restore original</button></div>{backgroundBusy && <p role="status" className="text-xs text-indigo-800">{backgroundProgress}</p>}<p className="text-xs text-slate-600">First use loads the AI model. Photos stay on your device. PNG preserves transparency; JPG uses white behind transparent areas.</p></div>
+            <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3"><h3 className="text-sm font-bold">Background</h3><label className="block text-sm">Background colour<select aria-label="Background colour" className={field} disabled={!!backgroundBusy} value={photo.backgroundMode === 'original' ? 'original' : ['transparent','#ffffff','#add8e6','#eeeeee'].includes(photo.background) ? photo.background : 'custom'} onChange={e => void changeBackground(e.target.value === 'custom' ? '#f0f0f0' : e.target.value)}><option value="original">Original background</option><option value="transparent">Transparent / remove</option><option value="#ffffff">White</option><option value="#add8e6">Light blue</option><option value="#eeeeee">Light grey</option><option value="custom">Custom colour</option></select></label>{photo.backgroundMode === 'removed' && <label className="flex items-center justify-between text-sm">Custom background colour<input aria-label="Custom background colour" type="color" disabled={!!backgroundBusy} value={photo.background === 'transparent' ? '#ffffff' : photo.background} onChange={e => patch({ background: e.target.value })}/></label>}<div className="flex flex-wrap gap-2"><button className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!!backgroundBusy || busy || loading} onClick={() => void changeBackground('transparent')}>{backgroundBusy === photo.id ? 'Removing…' : 'Remove background'}</button><button className="rounded-lg border bg-white px-3 py-2 text-sm disabled:opacity-50" disabled={!!backgroundBusy || photo.backgroundMode === 'original'} onClick={() => patch({ backgroundMode: 'original' })}>Restore original</button></div>{photo.backgroundMode === 'removed' && photo.cutout && <div className="flex flex-wrap gap-2"><button disabled={busy || !!backgroundBusy} className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold" onClick={() => setRefining({ photo, original: crop({ ...photo, backgroundMode: 'original' }, false, 'original').canvas, result: crop({ ...photo, background: 'transparent' }, false, 'original').canvas })}>Refine background</button><button disabled={busy || !!backgroundBusy} className="rounded-lg border bg-white px-3 py-2 text-sm" onClick={() => void changeBackground(photo.background, true)}>Reprocess selected crop</button></div>}{backgroundBusy && <p role="status" className="text-xs text-indigo-800">{backgroundProgress}</p>}<p className="text-xs text-slate-600">Crop tightly around one person before removal. AI can keep other people in the crop; use Refine background to erase them. Photos stay on your device. PNG preserves transparency; JPG uses white behind transparent areas.</p></div>
             <div className="space-y-3"><label className="block text-sm font-medium">Export quality<select aria-label="Export quality" className={field} value={resolution} onChange={e => setResolution(e.target.value as 'original' | 'print')}><option value="original">Original crop pixels — maximum detail</option><option value="print">300 DPI print dimensions</option></select></label><label className="block text-sm font-medium">Download format<select aria-label="Download format" className={field} value={format} onChange={e => setFormat(e.target.value as 'png' | 'jpg')}><option value="png">PNG — lossless (recommended)</option><option value="jpg">JPG — highest quality</option></select></label><p className="text-xs text-slate-500">Original mode keeps the pixels inside your crop, without resizing to a lower resolution. Cropping cannot recover detail from a small or blurry face. Print sheets use 300 DPI; PDF embeds your selected crop resolution.</p></div>
             {valid && <><p className="text-xs text-slate-500">Export: {resolution === 'original' ? Math.max(1, Math.round(croppedWidth)) : pixels(photo.width)} × {resolution === 'original' ? Math.max(1, Math.round(croppedWidth * photo.height / photo.width)) : pixels(photo.height)} pixels · {format.toUpperCase()}</p><button className={action} disabled={busy || loading || !!backgroundBusy} onClick={() => void exportFiles('single')}><Download size={17}/>Download this photo</button></>}
           </div>
@@ -206,8 +229,11 @@ export default function PassportPhoto() {
         </section>
       </div>
     </div>
+    {refining && <BackgroundRefine original={refining.original} result={refining.result} onClose={() => setRefining(null)} onApply={async canvas => { await saveMask(refining.photo, canvas, refining.photo.background); setRefining(null); setNotice('Background cleanup applied to previews and downloads.'); }}/>}
     {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}{notice && <p role="status" className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     <p className="mt-6 flex items-center gap-2 text-sm text-slate-500"><ShieldCheck size={18}/>Private by design. No photo uploads to a server.</p><p className="mt-2 text-xs text-slate-500">Background removal by IMG.LY · <a className="underline" href="/background-assets/LICENSE.md" target="_blank" rel="noreferrer">AGPL licence</a> · <a className="underline" href="https://github.com/LovejeetBawa/mindkosh-pixora" target="_blank" rel="noreferrer">Source code</a></p>
   </main>;
 }
 function validPhoto(p: Photo) { return Number.isFinite(p.width) && Number.isFinite(p.height) && p.width >= 10 && p.height >= 10 && p.width <= 150 && p.height <= 150; }
+
+function cropKey(p: Photo) { return [p.width, p.height, p.zoom, p.x, p.y, p.rotation].join(':'); }
