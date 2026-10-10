@@ -1,6 +1,6 @@
 # MindKosh Pixora
 
-Multi-tool website built with React, TypeScript and Vite. The image converter, resizer and enhancer are the first available tools. Other categories are marked coming soon.
+Multi-tool website built with React, TypeScript and Vite. Includes image editing, passport photos, PDF merge, text tools, calculators, developer utilities and AI image tools. All advertised categories are available.
 
 ## Local development
 
@@ -42,3 +42,12 @@ npm run build
 Crop tightly around one person, then select Remove background for a transparent cutout, or choose white, light blue, grey or a custom colour. The AI processes only the selected crop. The original image and crop settings are retained; Restore original reverses the background edit. Changing the crop restores the original and requires rerunning removal for the new selection. If other people or background remain, open Refine background: erase with a mouse/touch brush, restore original pixels, undo up to three strokes, reset edits, then apply. Cancel discards brush edits. Reprocess selected crop resets the cutout using AI. Applied cleanup affects previews and every export. Segmentation preserves original image dimensions and RGB detail but changes alpha at subject edges. Check hair, edges and document requirements. Small or blurry source faces cannot acquire missing detail by cropping. PNG supports transparency; JPG and print sheets flatten transparent areas onto white.
 
 IMG.LY background-removal and model data are pinned together at 1.4.5. Build/dev hooks copy the medium model and compatible WASM assets from the verified npm package into ignored `public/background-assets`. The 4 MB chunks fit Cloudflare Pages per-file limits; no external AI API, credentials or external model CDN are required. First use downloads the model from the same site and runs locally. Keep dev dependencies installed during Cloudflare builds. Licence and source links are shown in the tool; see THIRD_PARTY.md.
+
+## Additional toolkits
+
+- **Text Tools:** Unicode word/character statistics, case conversion, whitespace cleanup, duplicate/empty line removal, line sorting and literal find/replace. Copy or download the processed text.
+- **Calculators:** percentage operations, inclusive/exclusive GST, fixed-rate monthly EMI (including zero interest), adult BMI and length/weight/area/temperature conversion. Invalid inputs produce explanations; temperatures below absolute zero are rejected.
+- **Developer Tools:** strict JSON formatting/minification, UTF-8 Base64, URL component and HTML escaping, SHA-256, cryptographically random passwords and UUIDs, HEX/RGB conversion. Base64 decoding expects standard padded UTF-8 input. Large JSON integer identifiers should be quoted.
+- **AI Tools:** real on-device background removal, solid background replacement and black foreground silhouettes. Uses the same locally hosted model as Passport Photo Maker. Download native-dimension lossless PNGs. Multiple foreground people may remain; the passport tool offers crop and manual refinement for precise cleanup.
+
+Inputs stay in memory in the browser. No API keys are required. Run all unit checks with `node --test tests/*.test.mjs`.
