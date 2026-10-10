@@ -1,0 +1,128 @@
+[
+  {
+    "id": "home",
+    "path": "/",
+    "name": "MindKosh Pixora",
+    "description": "Free image, PDF, passport photo, text and developer tools in your browser.",
+    "indexable": true
+  },
+  {
+    "id": "editor",
+    "path": "/image-editor/",
+    "name": "Image Editor",
+    "description": "Convert, resize and adjust images in your browser. Download edited photos in supported formats.",
+    "indexable": true
+  },
+  {
+    "id": "converter",
+    "path": "/image-converter/",
+    "name": "Image Converter",
+    "description": "Convert images between supported formats with adjustable output settings and batch downloads.",
+    "indexable": true
+  },
+  {
+    "id": "resizer",
+    "path": "/image-resizer/",
+    "name": "Image Resizer",
+    "description": "Resize images using presets or custom pixel dimensions before downloading your photos.",
+    "indexable": true
+  },
+  {
+    "id": "enhancer",
+    "path": "/image-enhancer/",
+    "name": "Image Enhancer",
+    "description": "Adjust photo brightness, contrast and sharpness, then preview and download the edited image.",
+    "indexable": true
+  },
+  {
+    "id": "passport",
+    "path": "/passport-photo-maker/",
+    "name": "Passport Photo Maker",
+    "description": "Crop a person from a photo and arrange passport photos in multiple sizes on printable sheets.",
+    "indexable": true
+  },
+  {
+    "id": "pdfmerge",
+    "path": "/pdf-merge/",
+    "name": "PDF Merge",
+    "description": "Combine multiple PDF files into one document in your browser.",
+    "indexable": true
+  },
+  {
+    "id": "watermark",
+    "path": "/watermark-remover/",
+    "name": "Watermark Remover",
+    "description": "Cover selected areas in images and PDFs, or remove watermark text and header graphics from supported documents.",
+    "indexable": true
+  },
+  {
+    "id": "html",
+    "path": "/html-code-generator/",
+    "name": "HTML Code Generator",
+    "description": "Create, preview and download responsive HTML pages using configurable templates.",
+    "indexable": true
+  },
+  {
+    "id": "pdfeditor",
+    "path": "/pdf-editor/",
+    "name": "PDF Editor",
+    "description": "Add text, cover areas, rotate, reorder and delete PDF pages. Exported pages are flattened.",
+    "indexable": true
+  },
+  {
+    "id": "translate",
+    "path": "/document-translator/",
+    "name": "Document Translator",
+    "description": "Extract and translate PDF, DOCX, TXT and HTML text using available browser models or free online services.",
+    "indexable": true
+  },
+  {
+    "id": "text",
+    "path": "/text-tools/",
+    "name": "Text Tools",
+    "description": "Count words, change text case, clean text and find or replace phrases in your browser.",
+    "indexable": true
+  },
+  {
+    "id": "calculator",
+    "path": "/calculators/",
+    "name": "Calculators",
+    "description": "Calculate percentages, GST, EMI and BMI, or convert everyday units.",
+    "indexable": true
+  },
+  {
+    "id": "developer",
+    "path": "/developer-tools/",
+    "name": "Developer Tools",
+    "description": "Format JSON, encode Base64 and URLs, generate hashes, passwords and UUIDs, and convert colours.",
+    "indexable": true
+  },
+  {
+    "id": "ai",
+    "path": "/ai-tools/",
+    "name": "AI Background Tools",
+    "description": "Remove or change photo backgrounds and export subject masks using browser AI tools.",
+    "indexable": true
+  },
+  {
+    "id": "about",
+    "path": "/about/",
+    "name": "About MindKosh Pixora",
+    "description": "Learn about MindKosh Pixora and its online image, PDF, text and developer tools.",
+    "indexable": true
+  },
+  {
+    "id": "privacy",
+    "path": "/privacy/",
+    "name": "Privacy",
+    "description": "Privacy information for MindKosh Pixora.",
+    "indexable": false
+  },
+  {
+    "id": "contact",
+    "path": "/contact/",
+    "name": "Contact",
+    "description": "Contact information for MindKosh Pixora.",
+    "indexable": false
+  }
+]

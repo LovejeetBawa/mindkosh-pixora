@@ -162,11 +162,11 @@ function Chip({
   );
 }
 
-export default function App() {
+export default function App({ initialTab = "format" }: { initialTab?: "format" | "resize" | "enhance" }) {
   const [items, setItems] = useState<Item[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [tab, setTab] = useState<"format" | "resize" | "enhance">("format");
+  const [tab, setTab] = useState<"format" | "resize" | "enhance">(initialTab);
   const [support, setSupport] = useState<Record<Format, boolean> | null>(null);
   const [busy, setBusy] = useState(false);
   const [zipping, setZipping] = useState(false);

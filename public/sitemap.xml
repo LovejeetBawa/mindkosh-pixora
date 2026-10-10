@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://mindkoshpixora.in/</loc>
-  </url>
+  <url><loc>https://mindkoshpixora.in/</loc></url>
+  <url><loc>https://mindkoshpixora.in/image-editor/</loc></url>
+  <url><loc>https://mindkoshpixora.in/image-converter/</loc></url>
+  <url><loc>https://mindkoshpixora.in/image-resizer/</loc></url>
+  <url><loc>https://mindkoshpixora.in/image-enhancer/</loc></url>
+  <url><loc>https://mindkoshpixora.in/passport-photo-maker/</loc></url>
+  <url><loc>https://mindkoshpixora.in/pdf-merge/</loc></url>
+  <url><loc>https://mindkoshpixora.in/watermark-remover/</loc></url>
+  <url><loc>https://mindkoshpixora.in/html-code-generator/</loc></url>
+  <url><loc>https://mindkoshpixora.in/pdf-editor/</loc></url>
+  <url><loc>https://mindkoshpixora.in/document-translator/</loc></url>
+  <url><loc>https://mindkoshpixora.in/text-tools/</loc></url>
+  <url><loc>https://mindkoshpixora.in/calculators/</loc></url>
+  <url><loc>https://mindkoshpixora.in/developer-tools/</loc></url>
+  <url><loc>https://mindkoshpixora.in/ai-tools/</loc></url>
+  <url><loc>https://mindkoshpixora.in/about/</loc></url>
 </urlset>

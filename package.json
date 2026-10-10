@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "prebuild": "node scripts/prepare-background-assets.mjs && node scripts/prepare-document-assets.mjs",
-    "predev": "node scripts/prepare-background-assets.mjs && node scripts/prepare-document-assets.mjs"
+    "predev": "node scripts/prepare-background-assets.mjs && node scripts/prepare-document-assets.mjs",
+    "postbuild": "node scripts/generate-seo-pages.mjs"
   },
   "dependencies": {
     "@imgly/background-removal": "1.4.5",
