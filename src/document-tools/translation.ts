@@ -60,3 +60,17 @@ export function readTranslation(data: {
     throw Error("Translation service returned no result.");
   return text;
 }
+
+export function readGoogleTranslation(data: unknown) {
+  if (!Array.isArray(data) || !Array.isArray(data[0]))
+    throw Error("Google returned no translation.");
+  const text = data[0]
+    .map((segment: unknown) =>
+      Array.isArray(segment) && typeof segment[0] === "string"
+        ? segment[0]
+        : "",
+    )
+    .join("");
+  if (!text) throw Error("Google returned no translation.");
+  return text;
+}

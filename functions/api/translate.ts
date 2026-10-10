@@ -38,14 +38,15 @@ export async function onRequestPost({ request }: { request: Request }) {
       return json({ error: "Request too large." }, 413);
     const raw = await request.text();
     if (raw.length > 4096) return json({ error: "Request too large." }, 413);
-    const { text, source, target } = JSON.parse(raw);
+    const { text, source, target, provider = "mymemory" } = JSON.parse(raw);
     if (
       typeof text !== "string" ||
       !text.trim() ||
       new TextEncoder().encode(text).length > 450 ||
       !languages.has(source) ||
       !languages.has(target) ||
-      source === target
+      source === target ||
+      !["mymemory", "google"].includes(provider)
     )
       return json(
         {
@@ -54,6 +55,37 @@ export async function onRequestPost({ request }: { request: Request }) {
         },
         400,
       );
+    if (provider === "google") {
+      const url = new URL(
+        "https://translate.googleapis.com/translate_a/single",
+      );
+      for (const [key, value] of Object.entries({
+        client: "gtx",
+        sl: source,
+        tl: target,
+        dt: "t",
+        q: text,
+      }))
+        url.searchParams.set(key, value);
+      const upstream = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      if (!upstream.ok)
+        return json({
+          error: `Google web translation is unavailable (HTTP ${upstream.status}). Try another service or retry later.`,
+        });
+      const data = (await upstream.json()) as unknown;
+      if (!Array.isArray(data) || !Array.isArray(data[0]))
+        return json({ error: "Google returned no translation." });
+      const translated = data[0]
+        .map((segment: unknown) =>
+          Array.isArray(segment) && typeof segment[0] === "string"
+            ? segment[0]
+            : "",
+        )
+        .join("");
+      if (!translated)
+        return json({ error: "Google returned no translation." });
+      return json({ text: translated });
+    }
     const url = new URL("https://api.mymemory.translated.net/get");
     url.searchParams.set("q", text);
     url.searchParams.set("langpair", `${source}|${target}`);

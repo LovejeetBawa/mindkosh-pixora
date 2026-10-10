@@ -8,9 +8,15 @@ import {
   saveFile,
 } from "../toolkits/ui";
 import { extractText } from "./files";
-import { languages, splitTranslation, readTranslation } from "./translation";
+import {
+  languages,
+  splitTranslation,
+  readTranslation,
+  readGoogleTranslation,
+} from "./translation";
 export default function DocumentTranslator() {
   const [source, setSource] = useState("en");
+  const [provider, setProvider] = useState("mymemory");
   const [target, setTarget] = useState("hi");
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
@@ -80,9 +86,21 @@ export default function DocumentTranslator() {
         let translated = "";
         let direct: Response | undefined;
         try {
-          const url = new URL("https://api.mymemory.translated.net/get");
+          const url = new URL(
+            provider === "google"
+              ? "https://translate.googleapis.com/translate_a/single"
+              : "https://api.mymemory.translated.net/get",
+          );
           url.searchParams.set("q", chunks[i]);
-          url.searchParams.set("langpair", `${source}|${target}`);
+          if (provider === "google") {
+            for (const [key, value] of Object.entries({
+              client: "gtx",
+              sl: source,
+              tl: target,
+              dt: "t",
+            }))
+              url.searchParams.set(key, value);
+          } else url.searchParams.set("langpair", `${source}|${target}`);
           direct = await fetch(url, {
             signal: AbortSignal.any([
               controller.signal,
@@ -95,18 +113,16 @@ export default function DocumentTranslator() {
           const response = await fetch("/api/translate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: chunks[i], source, target }),
+            body: JSON.stringify({ text: chunks[i], source, target, provider }),
             signal: AbortSignal.any([
               controller.signal,
               AbortSignal.timeout(25000),
             ]),
           });
-          const data = await response
-            .json()
-            .catch(() => ({
-              error:
-                "Free translation service is temporarily unavailable. Retry later.",
-            }));
+          const data = await response.json().catch(() => ({
+            error:
+              "Free translation service is temporarily unavailable. Retry later.",
+          }));
           if (!response.ok || typeof data.text !== "string")
             throw Error(
               data.error || "Free translation unavailable. Retry later.",
@@ -118,7 +134,11 @@ export default function DocumentTranslator() {
             throw Error(
               "Free translation service is unavailable or its quota has been reached.",
             );
-          translated = readTranslation(await direct.json());
+          const data = await direct.json();
+          translated =
+            provider === "google"
+              ? readGoogleTranslation(data)
+              : readTranslation(data);
         }
         const el = document.createElement("textarea");
         el.innerHTML = translated;
@@ -187,14 +207,35 @@ export default function DocumentTranslator() {
     <Toolkit
       local={false}
       title="Document Translator"
-      description="Translate text from PDF, DOCX, TXT, Markdown, CSV or HTML into another language using the free MyMemory service."
+      description="Translate text from PDF, DOCX, TXT, Markdown, CSV or HTML into another language using a free translation service."
     >
       <p className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-        When you select Translate, document text is sent to MyMemory. Free
-        quotas apply (usually 5,000 characters per day per IP). The original
-        document remains on your device. Translation creates a new text
-        document; original layouts, images and tables are not retained.
+        Translate sends document text to your selected service: MyMemory or
+        Google. MyMemory usually allows 5,000 characters per day per IP. Google
+        web translation uses a public web endpoint whose availability can
+        change. Your original file stays on your device. Translation creates a
+        new text document; original layouts, images and tables are not retained.
       </p>
+      <label className="mb-5 block text-sm">
+        Translation service
+        <select
+          aria-label="Translation service"
+          className={inputStyle}
+          value={provider}
+          disabled={busy}
+          onChange={(e) => {
+            setProvider(e.target.value);
+            setResult("");
+            setComplete(false);
+            setError("");
+          }}
+        >
+          <option value="mymemory">MyMemory (free daily quota)</option>
+          <option value="google">
+            Google web translation (free, availability varies)
+          </option>
+        </select>
+      </label>
       <label className="block text-sm">
         Upload document
         <input
