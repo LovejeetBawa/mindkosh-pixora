@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Download, Plus, Trash2, Camera, ShieldCheck } from 'lucide-react';
 import { PDFDocument, rgb } from 'pdf-lib';
 import JSZip from 'jszip';
@@ -58,6 +59,8 @@ export default function PassportPhoto() {
   const [notice, setNotice] = useState('');
   const urls = useRef(new Set<string>());
   const preview = useRef<HTMLCanvasElement>(null);
+  const drag = useRef<{ pointerId: number; photoId: string; clientX: number; clientY: number; x: number; y: number; deltaX: number; deltaY: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const photo = photos.find(p => p.id === selected);
   const paper = papers[paperIndex];
   const paperWidth = landscape ? paper.height : paper.width, paperHeight = landscape ? paper.width : paper.height;
@@ -71,6 +74,37 @@ export default function PassportPhoto() {
     target.width = canvas.width; target.height = canvas.height; target.getContext('2d')!.drawImage(canvas, 0, 0);
   }, [photo, valid]);
   const patch = (update: Partial<Photo>) => setPhotos(list => list.map(p => p.id === selected ? { ...p, ...update } : p));
+  function startDrag(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!photo || !valid || busy || loading || event.button !== 0 || drag.current) return;
+    event.preventDefault();
+    const rotated = photo.rotation % 180 !== 0;
+    const width = rotated ? photo.image.naturalHeight : photo.image.naturalWidth;
+    const height = rotated ? photo.image.naturalWidth : photo.image.naturalHeight;
+    const cropWidth = Math.min(width, height * photo.width / photo.height) / photo.zoom;
+    const cropHeight = cropWidth * photo.height / photo.width;
+    const rect = event.currentTarget.getBoundingClientRect();
+    drag.current = {
+      pointerId: event.pointerId, photoId: photo.id, clientX: event.clientX, clientY: event.clientY,
+      x: photo.x, y: photo.y,
+      deltaX: width - cropWidth > 0.001 ? cropWidth / rect.width / (width - cropWidth) * 100 : 0,
+      deltaY: height - cropHeight > 0.001 ? cropHeight / rect.height / (height - cropHeight) * 100 : 0,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
+  }
+  function moveDrag(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const start = drag.current;
+    if (!start || event.pointerId !== start.pointerId) return;
+    // Drag the photo under the fixed crop frame; clamp to avoid empty edges.
+    const x = Math.max(0, Math.min(100, start.x - (event.clientX - start.clientX) * start.deltaX));
+    const y = Math.max(0, Math.min(100, start.y - (event.clientY - start.clientY) * start.deltaY));
+    setPhotos(list => list.map(p => p.id === start.photoId ? { ...p, x, y } : p));
+  }
+  function endDrag(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    drag.current = null; setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
   async function addFiles(files: FileList | null) {
     if (!files) return;
     setLoading(true); setError(''); setNotice('');
@@ -155,12 +189,12 @@ export default function PassportPhoto() {
       </aside>
       <div className="min-w-0 space-y-6">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"><h2 className="text-lg font-bold">2. Crop & size each photo</h2>{photo ? <div className="mt-5 grid gap-6 sm:grid-cols-2">
-          <div><div className="relative mx-auto max-w-64 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: valid ? `${photo.width} / ${photo.height}` : '1' }}><canvas ref={preview} aria-label="Cropped photo preview" className={`h-full w-full ${valid ? '' : 'invisible'}`}/>{valid && <div aria-hidden="true" className="pointer-events-none absolute inset-x-[22%] top-[12%] h-[62%] rounded-[50%] border border-dashed border-white/80 shadow-[0_0_0_1px_#0003]"/>}</div><p className="mt-3 text-center text-xs text-slate-500">Oval is a positioning aid only; it is never exported.</p>{lowResolution && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">This crop has fewer pixels than a 300 DPI print. Use a sharper, higher-resolution original.</p>}</div>
+          <div><div className="relative mx-auto max-w-64 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: valid ? `${photo.width} / ${photo.height}` : '1' }}><canvas ref={preview} aria-label="Cropped photo preview" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={endDrag} style={{ touchAction: 'none' }} className={`h-full w-full select-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'} ${valid ? '' : 'invisible'}`}/>{valid && <div aria-hidden="true" className="pointer-events-none absolute inset-x-[22%] top-[12%] h-[62%] rounded-[50%] border border-dashed border-white/80 shadow-[0_0_0_1px_#0003]"/>}</div><p className="mt-3 text-center text-xs text-slate-500">Zoom in to isolate one person, then drag the photo with your mouse or finger. The oval guide is not exported.</p>{lowResolution && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">This crop has fewer pixels than a 300 DPI print. Use a sharper, higher-resolution original.</p>}</div>
           <div className="space-y-4"><label className="block text-sm font-medium">Photo size<select aria-label="Photo size" className={field} value={photo.preset} onChange={e => { const index = Number(e.target.value); const p = presets[index]; patch(p.width ? { width: p.width, height: p.height, preset: index } : { preset: index }); }}>{presets.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}</select></label>
             <div className="grid grid-cols-2 gap-3">{(['width', 'height'] as const).map(key => <label key={key} className="text-sm font-medium">{key === 'width' ? 'Width' : 'Height'} (mm)<input className={field} type="number" min={10} max={150} step={0.1} value={photo[key]} onChange={e => patch({ [key]: Number(e.target.value), preset: presets.length - 1 })}/></label>)}</div>
             <label className="block text-sm font-medium">Copies on sheet<input className={field} type="number" min={1} max={40} value={photo.copies} onChange={e => patch({ copies: Number(e.target.value) })}/></label>
-            {([{ key: 'zoom', label: 'Zoom', min: 1, max: 4, step: 0.01 }, { key: 'x', label: 'Horizontal position', min: 0, max: 100, step: 1 }, { key: 'y', label: 'Vertical position', min: 0, max: 100, step: 1 }] as const).map(control => <label key={control.key} className="block text-sm font-medium">{control.label}<input aria-label={control.label} type="range" className="mt-2 block w-full accent-indigo-600" min={control.min} max={control.max} step={control.step} value={photo[control.key]} onChange={e => patch({ [control.key]: Number(e.target.value) })}/></label>)}
-            <div className="flex gap-3"><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ rotation: (photo.rotation + 90) % 360 })}>Rotate 90°</button><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ zoom: 1, x: 50, y: 50, rotation: 0 })}>Reset crop</button></div>
+            {([{ key: 'zoom', label: 'Zoom', min: 1, max: 12, step: 0.01 }, { key: 'x', label: 'Horizontal position', min: 0, max: 100, step: 1 }, { key: 'y', label: 'Vertical position', min: 0, max: 100, step: 1 }] as const).map(control => <label key={control.key} className="block text-sm font-medium">{control.label}<input aria-label={control.label} type="range" className="mt-2 block w-full accent-indigo-600" min={control.min} max={control.max} step={control.step} value={photo[control.key]} onChange={e => patch({ [control.key]: Number(e.target.value) })}/></label>)}
+            <div className="flex flex-wrap gap-2"><button aria-label="Zoom in" className="rounded-lg border px-3 py-2 text-sm" disabled={photo.zoom >= 12} onClick={() => patch({ zoom: Math.min(12, photo.zoom + 0.25) })}>Zoom +</button><button aria-label="Zoom out" className="rounded-lg border px-3 py-2 text-sm" disabled={photo.zoom <= 1} onClick={() => patch({ zoom: Math.max(1, photo.zoom - 0.25) })}>Zoom −</button><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ rotation: (photo.rotation + 90) % 360 })}>Rotate 90°</button><button className="rounded-lg border px-3 py-2 text-sm" onClick={() => patch({ zoom: 1, x: 50, y: 50, rotation: 0 })}>Reset crop</button></div>
             {valid && <><p className="text-xs text-slate-500">Export: {pixels(photo.width)} × {pixels(photo.height)} pixels at 300 DPI sizing.</p><button className={action} disabled={busy || loading} onClick={() => void exportFiles('single')}><Download size={17}/>Download this photo</button></>}
           </div>
         </div> : <p className="py-12 text-center text-slate-500">Add a photo to start. Select each photo to adjust its own size, crop and copies.</p>}</section>
