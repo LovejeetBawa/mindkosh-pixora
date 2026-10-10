@@ -6,3 +6,5 @@ dist/
 .DS_Store
 
 public/background-assets/
+
+public/document-assets/

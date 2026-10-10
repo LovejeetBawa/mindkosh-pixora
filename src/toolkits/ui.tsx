@@ -16,10 +16,12 @@ export function Toolkit({
   title,
   description,
   children,
+  local = true,
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  local?: boolean;
 }) {
   return (
     <main className="mx-auto max-w-5xl px-5 py-10">
@@ -29,7 +31,9 @@ export function Toolkit({
         {children}
       </div>
       <p className="mt-5 text-sm text-slate-500">
-        Runs locally in your browser. Inputs are not uploaded or saved.
+        {local
+          ? "Runs locally in your browser. Inputs are not uploaded or saved."
+          : "File extraction runs locally. Only text selected for translation is sent to the translation service."}
       </p>
     </main>
   );

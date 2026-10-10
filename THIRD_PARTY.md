@@ -8,3 +8,7 @@ The passport photo background-removal integration uses IMG.LY's `@imgly/backgrou
 - Integration source and build instructions: https://github.com/LovejeetBawa/mindkosh-pixora
 
 The background-removal integration is distributed under AGPL-3.0 in conjunction with these dependencies. Dependencies and their versions are recorded in package-lock.json. Unmodified assets are copied from the matching npm data package; chunk SHA-256 checksums are verified before copying. The library and runtime dependencies retain their own licence notices.
+
+## Document tools
+
+PDF rendering uses Mozilla PDF.js (`pdfjs-dist`, Apache-2.0). DOCX extraction uses Mammoth (BSD-2-Clause), and DOCX export uses docx (MIT). Their unmodified licence files are published under `/document-assets/pdfjs-dist-LICENSE.txt`, `/document-assets/mammoth-LICENSE.txt` and `/document-assets/docx-LICENSE.txt`. Exact versions are in package-lock.json. Translation is provided by MyMemory (https://mymemory.translated.net/), subject to its public service limits and privacy practices; no model is bundled for translation.
