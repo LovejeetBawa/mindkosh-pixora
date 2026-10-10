@@ -14,9 +14,16 @@ import {
   readTranslation,
   readGoogleTranslation,
 } from "./translation";
+import {
+  browserTranslator,
+  localTranslator,
+  type LocalTranslator,
+} from "./local-translation";
 export default function DocumentTranslator() {
   const [source, setSource] = useState("en");
-  const [provider, setProvider] = useState("mymemory");
+  const [provider, setProvider] = useState(
+    browserTranslator() ? "local" : "mymemory",
+  );
   const [target, setTarget] = useState("hi");
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
@@ -63,9 +70,10 @@ export default function DocumentTranslator() {
       setError("Choose two different languages.");
       return;
     }
-    if ([...text].length > 5000) {
+    const limit = provider === "local" ? 50000 : 5000;
+    if ([...text].length > limit) {
       setError(
-        "Free translation accepts up to 5,000 characters per document. Split larger documents first.",
+        `This translation option accepts up to ${limit.toLocaleString("en-US")} characters per document. Split larger documents first.`,
       );
       return;
     }
@@ -73,8 +81,16 @@ export default function DocumentTranslator() {
     abort.current = controller;
     setBusy(true);
     const parts: string[] = [];
+    let engine: LocalTranslator | undefined;
     try {
-      const chunks = splitTranslation(text);
+      if (provider === "local")
+        engine = await localTranslator(
+          source,
+          target,
+          controller.signal,
+          setProgress,
+        );
+      const chunks = splitTranslation(text, provider === "local" ? 3000 : 450);
       for (let i = 0; i < chunks.length; i++) {
         if (controller.signal.aborted)
           throw new DOMException("Cancelled", "AbortError");
@@ -85,64 +101,75 @@ export default function DocumentTranslator() {
         }
         let translated = "";
         let direct: Response | undefined;
-        try {
-          const url = new URL(
-            provider === "google"
-              ? "https://translate.googleapis.com/translate_a/single"
-              : "https://api.mymemory.translated.net/get",
-          );
-          url.searchParams.set("q", chunks[i]);
-          if (provider === "google") {
-            for (const [key, value] of Object.entries({
-              client: "gtx",
-              sl: source,
-              tl: target,
-              dt: "t",
-            }))
-              url.searchParams.set(key, value);
-          } else url.searchParams.set("langpair", `${source}|${target}`);
-          direct = await fetch(url, {
-            signal: AbortSignal.any([
-              controller.signal,
-              AbortSignal.timeout(20000),
-            ]),
-            referrerPolicy: "no-referrer",
+        if (engine) {
+          translated = await engine.translate(chunks[i], {
+            signal: controller.signal,
           });
-        } catch (e) {
-          if (controller.signal.aborted) throw e;
-          const response = await fetch("/api/translate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: chunks[i], source, target, provider }),
-            signal: AbortSignal.any([
-              controller.signal,
-              AbortSignal.timeout(25000),
-            ]),
-          });
-          const data = await response.json().catch(() => ({
-            error:
-              "Free translation service is temporarily unavailable. Retry later.",
-          }));
-          if (!response.ok || typeof data.text !== "string")
-            throw Error(
-              data.error || "Free translation unavailable. Retry later.",
+        } else {
+          try {
+            const url = new URL(
+              provider === "google"
+                ? "https://translate.googleapis.com/translate_a/single"
+                : "https://api.mymemory.translated.net/get",
             );
-          translated = data.text;
-        }
-        if (direct) {
-          if (!direct.ok)
-            throw Error(
-              "Free translation service is unavailable or its quota has been reached.",
-            );
-          const data = await direct.json();
-          translated =
-            provider === "google"
-              ? readGoogleTranslation(data)
-              : readTranslation(data);
+            url.searchParams.set("q", chunks[i]);
+            if (provider === "google") {
+              for (const [key, value] of Object.entries({
+                client: "gtx",
+                sl: source,
+                tl: target,
+                dt: "t",
+              }))
+                url.searchParams.set(key, value);
+            } else url.searchParams.set("langpair", `${source}|${target}`);
+            direct = await fetch(url, {
+              signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(20000),
+              ]),
+              referrerPolicy: "no-referrer",
+            });
+          } catch (e) {
+            if (controller.signal.aborted) throw e;
+            const response = await fetch("/api/translate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: chunks[i],
+                source,
+                target,
+                provider,
+              }),
+              signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(25000),
+              ]),
+            });
+            const data = await response.json().catch(() => ({
+              error:
+                "Free translation service is temporarily unavailable. Retry later.",
+            }));
+            if (!response.ok || typeof data.text !== "string")
+              throw Error(
+                data.error || "Free translation unavailable. Retry later.",
+              );
+            translated = data.text;
+          }
+          if (direct) {
+            if (!direct.ok)
+              throw Error(
+                "Free translation service is unavailable or its quota has been reached.",
+              );
+            const data = await direct.json();
+            translated =
+              provider === "google"
+                ? readGoogleTranslation(data)
+                : readTranslation(data);
+          }
         }
         const el = document.createElement("textarea");
         el.innerHTML = translated;
-        parts.push(el.value);
+        parts.push(provider === "local" ? translated : el.value);
         setResult(parts.join("\n"));
       }
       setComplete(true);
@@ -153,6 +180,7 @@ export default function DocumentTranslator() {
           : `${(e as Error).message} Any sections below are incomplete.`,
       );
     } finally {
+      engine?.destroy();
       setBusy(false);
       setProgress("");
       abort.current = null;
@@ -205,16 +233,16 @@ export default function DocumentTranslator() {
   }
   return (
     <Toolkit
-      local={false}
+      local={provider === "local"}
       title="Document Translator"
       description="Translate text from PDF, DOCX, TXT, Markdown, CSV or HTML into another language using a free translation service."
     >
       <p className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-        Translate sends document text to your selected service: MyMemory or
-        Google. MyMemory usually allows 5,000 characters per day per IP. Google
-        web translation uses a public web endpoint whose availability can
-        change. Your original file stays on your device. Translation creates a
-        new text document; original layouts, images and tables are not retained.
+        {provider === "local"
+          ? "On-device translation keeps text in your browser. A supported desktop Chrome browser and language pair are required. First use downloads the browser's translation model; no daily service quota applies."
+          : "Translate sends document text to your selected online service, MyMemory or Google. MyMemory usually allows 5,000 characters per day per IP. Google web translation uses a public web endpoint whose availability can change."}{" "}
+        Your original file stays on your device. Translation creates a new text
+        document; original layouts, images and tables are not retained.
       </p>
       <label className="mb-5 block text-sm">
         Translation service
@@ -230,6 +258,9 @@ export default function DocumentTranslator() {
             setError("");
           }}
         >
+          <option value="local">
+            On-device translation (supported desktop Chrome)
+          </option>
           <option value="mymemory">MyMemory (free daily quota)</option>
           <option value="google">
             Google web translation (free, availability varies)
@@ -296,7 +327,8 @@ export default function DocumentTranslator() {
         />
       </label>
       <p className="mt-2 text-xs text-slate-500">
-        {[...text].length.toLocaleString()} / 5,000 characters
+        {[...text].length.toLocaleString()} /{" "}
+        {provider === "local" ? "50,000" : "5,000"} characters
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
