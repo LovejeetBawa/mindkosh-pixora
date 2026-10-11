@@ -124,5 +124,152 @@
     "name": "Contact",
     "description": "Contact information for MindKosh Pixora.",
     "indexable": false
+  },
+  {
+    "id": "pdfsplit",
+    "path": "/split-pdf/",
+    "name": "Split PDF",
+    "description": "Split page ranges into separate PDF files and download a ZIP.",
+    "indexable": true
+  },
+  {
+    "id": "pdfextract",
+    "path": "/extract-pdf-pages/",
+    "name": "Extract PDF Pages",
+    "description": "Extract selected pages in your chosen order without rasterizing them.",
+    "indexable": true
+  },
+  {
+    "id": "pdfcompress",
+    "path": "/compress-pdf/",
+    "name": "Compress PDF",
+    "description": "Reduce image-heavy PDF size with adjustable resolution and JPEG quality.",
+    "indexable": true
+  },
+  {
+    "id": "imagepdf",
+    "path": "/jpg-to-pdf/",
+    "name": "JPG to PDF",
+    "description": "Combine JPG, PNG and WebP photos into a PDF with page size and margin settings.",
+    "indexable": true
+  },
+  {
+    "id": "scanpdf",
+    "path": "/scan-to-pdf/",
+    "name": "Scan to PDF",
+    "description": "Capture or upload document photos, crop them and combine them into a PDF.",
+    "indexable": true
+  },
+  {
+    "id": "pdfjpg",
+    "path": "/pdf-to-jpg/",
+    "name": "PDF to JPG",
+    "description": "Export PDF pages as JPG images at your chosen resolution.",
+    "indexable": true
+  },
+  {
+    "id": "pdfword",
+    "path": "/pdf-to-word/",
+    "name": "PDF to Word",
+    "description": "Export selectable PDF text to an editable DOCX document; original layout is not retained.",
+    "indexable": true
+  },
+  {
+    "id": "pdfppt",
+    "path": "/pdf-to-powerpoint/",
+    "name": "PDF to PowerPoint",
+    "description": "Create a PPTX presentation with one image slide per PDF page.",
+    "indexable": true
+  },
+  {
+    "id": "pdfexcel",
+    "path": "/pdf-to-excel/",
+    "name": "PDF to Excel",
+    "description": "Extract selectable PDF text into spreadsheet rows and columns for review.",
+    "indexable": true
+  },
+  {
+    "id": "wordpdf",
+    "path": "/word-to-pdf/",
+    "name": "Word to PDF",
+    "description": "Open DOCX content in a printable preview and save it as PDF using your browser.",
+    "indexable": true
+  },
+  {
+    "id": "excelpdf",
+    "path": "/excel-to-pdf/",
+    "name": "Excel to PDF",
+    "description": "Print XLSX worksheet values as tables and save them as PDF.",
+    "indexable": true
+  },
+  {
+    "id": "htmlpdf",
+    "path": "/html-to-pdf/",
+    "name": "HTML to PDF",
+    "description": "Preview local HTML safely and save it as PDF using your browser print dialog.",
+    "indexable": true
+  },
+  {
+    "id": "pdfnumbers",
+    "path": "/add-pdf-page-numbers/",
+    "name": "Add Page Numbers",
+    "description": "Add page numbers to PDF pages with position and starting number settings.",
+    "indexable": true
+  },
+  {
+    "id": "pdfwatermark",
+    "path": "/add-pdf-watermark/",
+    "name": "Add Watermark",
+    "description": "Add a text watermark with colour and transparency settings to PDF pages.",
+    "indexable": true
+  },
+  {
+    "id": "pdfsign",
+    "path": "/sign-pdf/",
+    "name": "Sign PDF",
+    "description": "Draw or upload a signature and place it on a PDF; this is a visual signature.",
+    "indexable": true
+  },
+  {
+    "id": "pdfcrop",
+    "path": "/crop-pdf/",
+    "name": "Crop PDF",
+    "description": "Select a page area with a mouse or finger and export cropped PDF pages.",
+    "indexable": true
+  },
+  {
+    "id": "pdfredact",
+    "path": "/redact-pdf/",
+    "name": "Redact PDF",
+    "description": "Black out selected areas and create a new flattened PDF without source text or attachments.",
+    "indexable": true
+  },
+  {
+    "id": "pdfcompare",
+    "path": "/compare-pdf/",
+    "name": "Compare PDF",
+    "description": "Compare selectable PDF text and view pages side by side.",
+    "indexable": true
+  },
+  {
+    "id": "pdfforms",
+    "path": "/pdf-forms/",
+    "name": "PDF Forms",
+    "description": "Fill supported PDF form fields or add text fields and checkboxes to a document.",
+    "indexable": true
+  },
+  {
+    "id": "pdfmarkdown",
+    "path": "/pdf-to-markdown/",
+    "name": "PDF to Markdown",
+    "description": "Extract selectable PDF text into an editable Markdown file.",
+    "indexable": true
+  },
+  {
+    "id": "pdfocr",
+    "path": "/ocr-pdf/",
+    "name": "OCR PDF",
+    "description": "Recognize English or Hindi text in scanned PDFs and photos locally in your browser.",
+    "indexable": true
   }
 ]
