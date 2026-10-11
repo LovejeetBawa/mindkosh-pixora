@@ -1,0 +1,401 @@
+import { useEffect, useRef, useState } from "react";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  Toolkit,
+  Output,
+  inputStyle,
+  buttonStyle,
+  saveFile,
+} from "../toolkits/ui";
+import { extractText } from "./files";
+import {
+  languages,
+  splitTranslation,
+  readTranslation,
+  readGoogleTranslation,
+} from "./translation";
+import {
+  browserTranslator,
+  localTranslator,
+  type LocalTranslator,
+} from "./local-translation";
+export default function DocumentTranslator() {
+  const [source, setSource] = useState("en");
+  const [provider, setProvider] = useState("mymemory");
+  useEffect(() => {
+    if (browserTranslator()) setProvider("local");
+  }, []);
+  const [target, setTarget] = useState("hi");
+  const [text, setText] = useState("");
+  const [result, setResult] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState("");
+  const [filename, setFilename] = useState("translated-document");
+  const abort = useRef<AbortController | null>(null);
+  const [complete, setComplete] = useState(false);
+  useEffect(
+    () => () => {
+      abort.current?.abort();
+    },
+    [],
+  );
+  async function upload(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    setProgress("Extracting document text…");
+    try {
+      const extracted = await extractText(file);
+      setText(extracted);
+      setResult("");
+      setComplete(false);
+      setFilename(file.name.replace(/\.[^.]+$/, ""));
+      if (!extracted.trim()) throw Error("This document contains no text.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setProgress("");
+    }
+  }
+  async function translate() {
+    setError("");
+    setResult("");
+    setComplete(false);
+    if (!text.trim()) {
+      setError("Upload a document or enter text.");
+      return;
+    }
+    if (source === target) {
+      setError("Choose two different languages.");
+      return;
+    }
+    const limit = provider === "local" ? 50000 : 5000;
+    if ([...text].length > limit) {
+      setError(
+        `This translation option accepts up to ${limit.toLocaleString("en-US")} characters per document. Split larger documents first.`,
+      );
+      return;
+    }
+    const controller = new AbortController();
+    abort.current = controller;
+    setBusy(true);
+    const parts: string[] = [];
+    let engine: LocalTranslator | undefined;
+    try {
+      if (provider === "local")
+        engine = await localTranslator(
+          source,
+          target,
+          controller.signal,
+          setProgress,
+        );
+      const chunks = splitTranslation(text, provider === "local" ? 3000 : 450);
+      for (let i = 0; i < chunks.length; i++) {
+        if (controller.signal.aborted)
+          throw new DOMException("Cancelled", "AbortError");
+        setProgress(`Translating section ${i + 1} of ${chunks.length}…`);
+        if (!chunks[i].trim()) {
+          parts.push(chunks[i]);
+          continue;
+        }
+        let translated = "";
+        let direct: Response | undefined;
+        if (engine) {
+          translated = await engine.translate(chunks[i], {
+            signal: controller.signal,
+          });
+        } else {
+          try {
+            const url = new URL(
+              provider === "google"
+                ? "https://translate.googleapis.com/translate_a/single"
+                : "https://api.mymemory.translated.net/get",
+            );
+            url.searchParams.set("q", chunks[i]);
+            if (provider === "google") {
+              for (const [key, value] of Object.entries({
+                client: "gtx",
+                sl: source,
+                tl: target,
+                dt: "t",
+              }))
+                url.searchParams.set(key, value);
+            } else url.searchParams.set("langpair", `${source}|${target}`);
+            direct = await fetch(url, {
+              signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(20000),
+              ]),
+              referrerPolicy: "no-referrer",
+            });
+          } catch (e) {
+            if (controller.signal.aborted) throw e;
+            const response = await fetch("/api/translate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: chunks[i],
+                source,
+                target,
+                provider,
+              }),
+              signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(25000),
+              ]),
+            });
+            const data = await response.json().catch(() => ({
+              error:
+                "Free translation service is temporarily unavailable. Retry later.",
+            }));
+            if (!response.ok || typeof data.text !== "string")
+              throw Error(
+                data.error || "Free translation unavailable. Retry later.",
+              );
+            translated = data.text;
+          }
+          if (direct) {
+            if (!direct.ok)
+              throw Error(
+                "Free translation service is unavailable or its quota has been reached.",
+              );
+            const data = await direct.json();
+            translated =
+              provider === "google"
+                ? readGoogleTranslation(data)
+                : readTranslation(data);
+          }
+        }
+        const el = document.createElement("textarea");
+        el.innerHTML = translated;
+        parts.push(provider === "local" ? translated : el.value);
+        setResult(parts.join("\n"));
+      }
+      setComplete(true);
+    } catch (e) {
+      setError(
+        controller.signal.aborted
+          ? "Translation cancelled. Any sections below are incomplete."
+          : `${(e as Error).message} Any sections below are incomplete.`,
+      );
+    } finally {
+      engine?.destroy();
+      setBusy(false);
+      setProgress("");
+      abort.current = null;
+    }
+  }
+  async function downloadDocx() {
+    try {
+      const doc = new Document({
+        sections: [
+          {
+            children: result.split("\n").map(
+              (line) =>
+                new Paragraph({
+                  children: [new TextRun({ text: line, font: "Arial" })],
+                  bidirectional: ["ar", "ur"].includes(target),
+                }),
+            ),
+          },
+        ],
+      });
+      saveFile(await Packer.toBlob(doc), `${filename}-${target}.docx`);
+    } catch {
+      setError("Could not export DOCX. Download TXT instead.");
+    }
+  }
+  function print() {
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.width = "1px";
+    frame.style.height = "1px";
+    document.body.append(frame);
+    const doc = frame.contentDocument;
+    if (!doc) {
+      frame.remove();
+      return;
+    }
+    doc.open();
+    doc.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>Translated document</title><style>body{font:16px Arial,sans-serif;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}@page{margin:20mm}</style></head><body></body></html>',
+    );
+    doc.close();
+    doc.documentElement.lang = target;
+    doc.body.dir = ["ar", "ur"].includes(target) ? "rtl" : "ltr";
+    doc.body.textContent = result;
+    setTimeout(() => {
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      setTimeout(() => frame.remove(), 60000);
+    }, 250);
+  }
+  return (
+    <Toolkit
+      local={provider === "local"}
+      title="Document Translator"
+      description="Translate text from PDF, DOCX, TXT, Markdown, CSV or HTML into another language using a free translation service."
+    >
+      <p className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+        {provider === "local"
+          ? "On-device translation keeps text in your browser. A supported desktop Chrome browser and language pair are required. First use downloads the browser's translation model; no daily service quota applies."
+          : "Translate sends document text to your selected online service, MyMemory or Google. MyMemory usually allows 5,000 characters per day per IP. Google web translation uses a public web endpoint whose availability can change."}{" "}
+        Your original file stays on your device. Translation creates a new text
+        document; original layouts, images and tables are not retained.
+      </p>
+      <label className="mb-5 block text-sm">
+        Translation service
+        <select
+          aria-label="Translation service"
+          className={inputStyle}
+          value={provider}
+          disabled={busy}
+          onChange={(e) => {
+            setProvider(e.target.value);
+            setResult("");
+            setComplete(false);
+            setError("");
+          }}
+        >
+          <option value="local">
+            On-device translation (supported desktop Chrome)
+          </option>
+          <option value="mymemory">MyMemory (free daily quota)</option>
+          <option value="google">
+            Google web translation (free, availability varies)
+          </option>
+        </select>
+      </label>
+      <label className="block text-sm">
+        Upload document
+        <input
+          aria-label="Translation document"
+          type="file"
+          accept=".pdf,.docx,.txt,.md,.csv,.html,.htm"
+          className={inputStyle}
+          disabled={busy}
+          onChange={(e) => {
+            void upload(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      <p className="mt-2 text-xs text-slate-500">
+        Up to 25 MB. PDFs need selectable text; scans need OCR first. Save
+        legacy DOC files as DOCX. Review translations before official use.
+      </p>
+      <div className="my-5 grid gap-4 sm:grid-cols-2">
+        {[
+          ["Source language", source, setSource],
+          ["Target language", target, setTarget],
+        ].map(([name, value, change]) => (
+          <label key={String(name)} className="text-sm">
+            {String(name)}
+            <select
+              aria-label={String(name)}
+              disabled={busy}
+              className={inputStyle}
+              value={String(value)}
+              onChange={(e) => {
+                (change as (v: string) => void)(e.target.value);
+                setResult("");
+                setComplete(false);
+              }}
+            >
+              {Object.entries(languages).map(([code, label]) => (
+                <option value={code} key={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+      <label className="block text-sm">
+        Source text
+        <textarea
+          aria-label="Source text"
+          disabled={busy}
+          className={`${inputStyle} min-h-52`}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            setResult("");
+            setComplete(false);
+          }}
+        />
+      </label>
+      <p className="mt-2 text-xs text-slate-500">
+        {[...text].length.toLocaleString()} /{" "}
+        {provider === "local" ? "50,000" : "5,000"} characters
+      </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          className={buttonStyle}
+          disabled={busy}
+          onClick={() => void translate()}
+        >
+          Translate document
+        </button>
+        {busy && abort.current && (
+          <button
+            className={buttonStyle}
+            onClick={() => abort.current?.abort()}
+          >
+            Cancel translation
+          </button>
+        )}
+      </div>
+      {busy && (
+        <p role="status" className="mt-4 text-indigo-700">
+          {progress}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-4 break-words text-red-700">
+          {error}
+        </p>
+      )}
+      <Output
+        name={
+          complete
+            ? "Translated text"
+            : "Translated text (partial until complete)"
+        }
+        value={result}
+        filename={`${filename}-${target}.txt`}
+      />
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          className={buttonStyle}
+          disabled={!complete || busy}
+          onClick={() => void downloadDocx()}
+        >
+          Download translated DOCX
+        </button>
+        <button
+          className={buttonStyle}
+          disabled={!complete || busy}
+          onClick={print}
+        >
+          Print / Save as PDF
+        </button>
+      </div>
+      <p className="mt-4 text-xs text-slate-500">
+        For PDF output, choose “Save as PDF” in your browser’s print dialog.
+        Service:{" "}
+        <a
+          className="underline"
+          href="https://mymemory.translated.net/doc/usagelimits.php"
+          target="_blank"
+          rel="noreferrer"
+        >
+          MyMemory limits
+        </a>
+        . Input is not saved by this website.
+      </p>
+    </Toolkit>
+  );
+}
