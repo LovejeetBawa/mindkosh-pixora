@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "prebuild": "node scripts/prepare-background-assets.mjs && node scripts/prepare-document-assets.mjs && node scripts/prepare-ocr-assets.mjs",
     "predev": "node scripts/prepare-background-assets.mjs && node scripts/prepare-document-assets.mjs && node scripts/prepare-ocr-assets.mjs",
-    "postbuild": "node scripts/generate-seo-pages.mjs",
+    "postbuild": "node scripts/generate-seo-pages.mjs && node scripts/generate-source-backup.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:pdf-browser": "node tests/pdf-tools.browser.cjs"
   },
