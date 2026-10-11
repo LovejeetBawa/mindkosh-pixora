@@ -20,7 +20,7 @@ The included dist folder in a full backup is already built. An offline front-end
 ## Code map
 
 - src/Site.tsx: homepage discovery, navigation, history, contact and privacy pages.
-- src/pages.json: direct URLs and search metadata. scripts/generate-seo-pages.mjs: static HTML per route, 404 and generated sitemap.
+- src/pages.json: direct URLs and search metadata. scripts/generate-seo-pages.mjs: pre-rendered React HTML per route, 404 and generated sitemap. The build renders Site with initialPath using Vite SSR; main.tsx hydrates the same markup so the real layout is visible before JavaScript loads. Keep initial state deterministic between build and browser; detect browser-only capabilities in effects.
 - src/App.tsx: image conversion, resize and enhancement.
 - src/photo-tools: passport crops, mouse/touch selection, lossless exports, mixed-size print layouts and AI/manual background refinement.
 - src/pdf-tools: PDF merge plus 21 additional PDF utilities and OCR. catalog.ts defines added tools. ExtraPDFTools.tsx selects the component.

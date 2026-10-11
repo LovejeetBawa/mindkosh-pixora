@@ -21,9 +21,10 @@ import {
 } from "./local-translation";
 export default function DocumentTranslator() {
   const [source, setSource] = useState("en");
-  const [provider, setProvider] = useState(
-    browserTranslator() ? "local" : "mymemory",
-  );
+  const [provider, setProvider] = useState("mymemory");
+  useEffect(() => {
+    if (browserTranslator()) setProvider("local");
+  }, []);
   const [target, setTarget] = useState("hi");
   const [text, setText] = useState("");
   const [result, setResult] = useState("");

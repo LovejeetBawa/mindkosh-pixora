@@ -39,8 +39,8 @@ const categories = [
  {name:'Developer',icon:Code2,subtitle:'Coding helpers'},
  {name:'AI',icon:Sparkles,subtitle:'Smart tools'},
 ];
-export default function Site(){
-const pageFromPath=()=>pages.find(p=>p.path===window.location.pathname.replace(/\/?$/, '/'))?.id ?? 'missing';
+export default function Site({ initialPath }: { initialPath?: string } = {}){
+const pageFromPath=()=>pages.find(p=>p.path===(initialPath ?? window.location.pathname).replace(/\/?$/, '/'))?.id ?? 'missing';
  const [page,setPage]=useState(pageFromPath);
  const [query,setQuery]=useState('');
  const [category,setCategory]=useState('All');
