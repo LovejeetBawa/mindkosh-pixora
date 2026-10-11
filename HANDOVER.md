@@ -40,7 +40,9 @@ The owner must retain GitHub, Cloudflare, domain registrar/DNS and Search Consol
 
 The main domain is public and HTTPS works. Cloudflare deployment of the PDF tools succeeded. All 39 direct routes/shared assets were verified; sitemap contains 37 indexable URLs. Search Console showed sitemap Success, and the owner submitted indexing requests for passport-photo-maker, pdf-merge and document-translator. Google controls crawling/indexing; track Pages and Performance in Search Console over time.
 
-The www hostname could not be verified from this cloud environment (proxy CONNECT denied and DNS lookup returned no address). Do not claim it works until checked from the owner's browser or DNS dashboard. If desired, add www as a Cloudflare Pages custom domain, configure the DNS record exactly as Cloudflare instructs, wait for HTTPS activation and redirect www to the canonical https://mindkoshpixora.in/ while retaining paths/query strings.
+On 11 October 2026 the owner confirmed both apex and www custom domains Active with SSL enabled in Cloudflare. The active WWW to main domain rule uses http*://www.mindkoshpixora.in/* → https://mindkoshpixora.in/${2}, status 301, preserve query string enabled. The owner's browser confirmed www redirects to the apex passport-photo-maker path and the page loads. The cloud proxy still limits independent www checks; retain the rule in the owner's Cloudflare account (DNS/rules are external account configuration, not restored from source ZIP).
+
+Final loading checks: all 39 routes render actual HTML during the build and hydrate without runtime errors. Slow-JavaScript checks keep real header/content visible. A brief paint or font change can still vary by browser/network; no universal zero-flash or 100% error-free guarantee is claimed.
 
 Contact uses the existing public GitHub issue tracker; no private support email was provided. Privacy describes the current local processing, optional translation providers and hosting. Update it whenever services or data handling change.
 
