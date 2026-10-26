@@ -271,5 +271,12 @@
     "name": "OCR PDF",
     "description": "Recognize English or Hindi text in scanned PDFs and photos locally in your browser.",
     "indexable": true
+  },
+  {
+    "id": "typingmaster",
+    "path": "/typing-master/",
+    "name": "Typing Master",
+    "description": "English, Punjabi and Hindi typing practice with PSSSB-style timed tests. Practice scores are estimates, not official exam results.",
+    "indexable": true
   }
 ]

@@ -29,7 +29,7 @@ for (const page of pages) {
  await mkdir(directory, { recursive: true });
  await writeFile(`${directory}index.html`, html);
 }
-const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.filter(p=>p.indexable).map(p=>`  <url><loc>${origin}${p.path}</loc></url>`).join('\n')}\n</urlset>\n`;
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.filter(p=>p.indexable).map(p=>`  <url><loc>${origin}${p.path}</loc></url>`).concat([`  <url><loc>${origin}/typing-tutor/</loc></url>`]).join('\n')}\n</urlset>\n`;
 await writeFile('dist/sitemap.xml', sitemap);
 await writeFile('dist/404.html', '<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="robots" content="noindex, follow"><title>Page not found | MindKosh Pixora</title></head><body><h1>Page not found</h1><p><a href="/">Explore MindKosh Pixora tools</a></p></body></html>');
 console.log(`Generated ${pages.length} direct pages and ${pages.filter(p=>p.indexable).length} sitemap URLs.`);
