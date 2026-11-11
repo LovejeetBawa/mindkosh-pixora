@@ -278,5 +278,68 @@
     "name": "Typing Master",
     "description": "English, Punjabi and Hindi typing practice with PSSSB-style timed tests. Practice scores are estimates, not official exam results.",
     "indexable": true
+  },
+  {
+    "id": "images-to-zip",
+    "path": "/images-to-zip/",
+    "name": "Images to ZIP",
+    "description": "Pack JPG, PNG and WebP images into a ZIP archive. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "folder-to-zip",
+    "path": "/folder-to-zip/",
+    "name": "Folder to ZIP",
+    "description": "Compress an image folder into a downloadable ZIP. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "zip-images-to-pdf",
+    "path": "/zip-images-to-pdf/",
+    "name": "ZIP Images to PDF",
+    "description": "Convert images inside a ZIP archive into one PDF. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "multiple-zip-to-pdf",
+    "path": "/multiple-zip-to-pdf/",
+    "name": "Multiple ZIP to PDF",
+    "description": "Combine images from several ZIP archives into one PDF. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "merge-zip",
+    "path": "/merge-zip/",
+    "name": "Merge ZIP Files",
+    "description": "Merge ZIP archives into one ZIP without overwriting files. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "zip-extractor",
+    "path": "/zip-extractor/",
+    "name": "ZIP Extractor and Viewer",
+    "description": "Preview images and extract selected files from ZIP archives. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "bulk-image-converter",
+    "path": "/bulk-image-converter/",
+    "name": "Bulk Image Converter",
+    "description": "Convert multiple images to PNG JPG or WebP and download ZIP. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "bulk-image-resizer",
+    "path": "/bulk-image-resizer/",
+    "name": "Bulk Image Resizer",
+    "description": "Resize multiple images and download them as ZIP. Free browser-based tool.",
+    "indexable": true
+  },
+  {
+    "id": "pdf-pages-to-zip",
+    "path": "/pdf-pages-to-zip/",
+    "name": "PDF Pages to ZIP",
+    "description": "Export PDF pages as PNG or JPG files in ZIP. Free browser-based tool.",
+    "indexable": true
   }
 ]

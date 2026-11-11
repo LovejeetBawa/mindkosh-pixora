@@ -32,7 +32,7 @@
     "write-excel-file": "4.1.1"
   },
   "devDependencies": {
-    "@imgly/background-removal-data": "1.4.5",
+    "@imgly/background-removal-data": "^1.4.5",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
