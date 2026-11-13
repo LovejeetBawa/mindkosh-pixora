@@ -173,6 +173,80 @@ export default function PDFCompare() {
           </button>
         </>
       )}
+    
+<section className="mt-10 space-y-6 border-t border-slate-200 pt-8 text-slate-700">
+  <div>
+    <h2 className="text-2xl font-bold text-slate-900">
+      How to Compare Two PDF Files Online
+    </h2>
+    <p className="mt-3">
+      MindKosh Pixora Compare PDF helps you review two PDF
+      documents side by side and identify differences in
+      selectable text directly in your browser.
+    </p>
+    <ol className="mt-3 list-decimal space-y-2 pl-6">
+      <li>Select your original document as PDF A.</li>
+      <li>Select the updated document as PDF B.</li>
+      <li>Review both PDF previews side by side.</li>
+      <li>Check text found only in PDF A or PDF B.</li>
+      <li>Download the comparison results as a text file.</li>
+    </ol>
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-bold text-slate-900">
+      Compare PDF Features
+    </h2>
+    <ul className="mt-3 list-disc space-y-2 pl-6">
+      <li>Side-by-side PDF page previews.</li>
+      <li>Comparison of selectable PDF text.</li>
+      <li>Lists of removed and added text lines.</li>
+      <li>Downloadable text comparison report.</li>
+      <li>Local processing in your browser.</li>
+    </ul>
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-bold text-slate-900">
+      Important Limitations
+    </h2>
+    <p className="mt-3">
+      This tool compares extracted text lines and ignores
+      unchanged lines. It may not detect differences in
+      images, fonts, formatting or page layout. Scanned
+      PDFs require OCR for text comparison. Documents are
+      limited to 20 pages each.
+    </p>
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-bold text-slate-900">
+      Frequently Asked Questions
+    </h2>
+    <h3 className="mt-4 font-semibold">
+      Can I compare PDF files for free?
+    </h3>
+    <p className="mt-2">
+      Yes. You can use this tool to compare selectable
+      PDF text without paying a fee.
+    </p>
+    <h3 className="mt-4 font-semibold">
+      Does the tool compare scanned PDF documents?
+    </h3>
+    <p className="mt-2">
+      Scanned documents can be previewed, but their text
+      must be recognized using OCR before text comparison.
+    </p>
+    <h3 className="mt-4 font-semibold">
+      Are my PDF files uploaded to a server?
+    </h3>
+    <p className="mt-2">
+      PDF processing runs locally in your browser.
+      Files are not uploaded by this comparison tool.
+    </p>
+  </div>
+</section>
+
     </Toolkit>
   );
 }
