@@ -175,9 +175,13 @@ export default function Site({ initialPath }: { initialPath?: string } = {}) {
       <header className="sticky top-0 z-50 border-b border-indigo-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <a {...link('home')} className="flex items-center gap-3 text-left">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white">
-              <Layers3 size={23} />
-            </span>
+            <img
+              src="/Logo%20pixora-logo.png"
+              alt="MindKosh Pixora logo"
+              className="h-12 w-12 rounded-full object-contain"
+              width={48}
+              height={48}
+            />
             <span>
               <strong className="block text-lg leading-tight">
                 MindKosh <span className="text-violet-600">Pixora</span>
